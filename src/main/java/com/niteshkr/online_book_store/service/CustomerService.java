@@ -22,149 +22,121 @@ public class CustomerService {
 
     private final PurchaseHistoryRepository purchaseHistoryRepository;
     private final BookRepository bookRepository;
-    private  final UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    public CustomerService(PurchaseHistoryRepository purchaseHistoryRepository, BookRepository bookRepository,UserRepository userRepository) {
+    public CustomerService(PurchaseHistoryRepository purchaseHistoryRepository, BookRepository bookRepository, UserRepository userRepository) {
         this.purchaseHistoryRepository = purchaseHistoryRepository;
         this.bookRepository = bookRepository;
-        this.userRepository=userRepository;
+        this.userRepository = userRepository;
     }
 
     public List<Book> getPurchasedBooks() {
-        String authenticatedUser = SecurityContextHolder.getContext().getAuthentication().getName();
-        Optional<User> user=userRepository.findByUsername(authenticatedUser);
-        if(user.isEmpty()){
-            throw new RuntimeException("User Does Not exits");
-        }
-        User userData=user.get();
+        User user = getAuthenticatedUser();
 
-        List<PurchaseHistory> purchaseHistories = purchaseHistoryRepository.findByCustomerUser(userData);
-        return purchaseHistories.stream()
-                .flatMap(ph -> ph.getPurchaseDetails().stream())
+        List<PurchaseHistory> histories = purchaseHistoryRepository.findByCustomerUser(user);
+        return histories.stream()
+                .flatMap(h -> h.getPurchaseDetails().stream())
                 .map(PurchaseDetail::getBook)
                 .distinct()
                 .collect(Collectors.toList());
     }
 
     public PurchaseHistory createPurchasedOrder(PurchaseHistory purchaseHistory) {
-        String authenticatedUser = SecurityContextHolder.getContext().getAuthentication().getName();
-        Optional<User> userOpt = userRepository.findByUsername(authenticatedUser);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found");
-        }
+        User user = getAuthenticatedUser();
 
-        User user = userOpt.get();
         if (user.getCustomer() == null) {
-            throw new IllegalArgumentException("CustomerDetails not found for user");
+            throw new IllegalArgumentException("Customer details not found for user");
         }
 
-        purchaseHistory.setCustomer(user.getCustomer());  // ✅ Set the persisted customer
+        purchaseHistory.setCustomer(user.getCustomer());
 
-        PurchaseDetail purchaseDetail = purchaseHistory.getPurchaseDetails().stream()
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Purchase details cannot be empty"));
+        if (purchaseHistory.getPurchaseDetails().size() != 1) {
+            throw new IllegalArgumentException("Only one purchase detail is supported per order");
+        }
 
-        Book book=bookRepository.findById(purchaseDetail.getBook().getId())
-                .orElseThrow(()->new RuntimeException("Book Not found"));
+        PurchaseDetail detail = purchaseHistory.getPurchaseDetails().iterator().next();
+        Book book = getBookById(detail.getBook().getId());
 
-        if (book.getQuantity() < purchaseDetail.getQuantity()) {
+        if (book.getQuantity() < detail.getQuantity()) {
             throw new IllegalArgumentException("Insufficient book quantity");
         }
 
-        book.setQuantity(book.getQuantity() - purchaseDetail.getQuantity());
-        bookRepository.save(book);
-
-        if(purchaseDetail.getPrice()!= (book.getPrice()*purchaseDetail.getQuantity())){
-            throw new RuntimeException("Purchased price are not matching with the number of book buy price");
+        double expectedPrice = book.getPrice() * detail.getQuantity();
+        if (expectedPrice<detail.getPrice()) {
+            throw new IllegalArgumentException("Price mismatch with quantity");
         }
 
-        purchaseDetail.setPurchaseHistory(purchaseHistory);
-        purchaseDetail.setPrice(purchaseDetail.getPrice());
+        book.setQuantity(book.getQuantity() - detail.getQuantity());
+        bookRepository.save(book);
+
+        detail.setBook(book);
+        detail.setPurchaseHistory(purchaseHistory);
 
         return purchaseHistoryRepository.save(purchaseHistory);
     }
 
-
     public PurchaseHistory updatePurchaseHistory(Long purchaseId, PurchaseHistory updatedPurchaseHistory) {
-        String authenticatedUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = getAuthenticatedUser();
 
-        Optional<PurchaseHistory> existingPurchaseOptional = purchaseHistoryRepository.findById(purchaseId);
-        if (existingPurchaseOptional.isEmpty()) {
-            throw new IllegalArgumentException("Purchase history with ID " + purchaseId + " not found");
+        PurchaseHistory existing = purchaseHistoryRepository.findById(purchaseId)
+                .orElseThrow(() -> new IllegalArgumentException("Purchase history not found"));
+
+        if (!existing.getCustomer().getUser().getUsername().equals(user.getUsername())) {
+            throw new SecurityException("Unauthorized update attempt");
         }
 
-        PurchaseHistory existingPurchase = existingPurchaseOptional.get();
-//        if (!existingPurchase.getCustomer().getId().equals(authenticatedUser)) {
-//            throw new SecurityException("Unauthorized to update this purchase history");
-//        }
+        PurchaseDetail existingDetail = existing.getPurchaseDetails().iterator().next();
+        Book oldBook = getBookById(existingDetail.getBook().getId());
 
-        PurchaseDetail updatedDetail = updatedPurchaseHistory.getPurchaseDetails().stream()
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Purchase details cannot be empty"));
+        oldBook.setQuantity(oldBook.getQuantity() + existingDetail.getQuantity());
+        bookRepository.save(oldBook);
 
-        Book updatedBook = updatedDetail.getBook();
-        if (updatedBook == null || updatedBook.getId() == 0) {
-            throw new IllegalArgumentException("Book must be specified");
-        }
+        PurchaseDetail newDetail = updatedPurchaseHistory.getPurchaseDetails().iterator().next();
+        Book newBook = getBookById(newDetail.getBook().getId());
 
-        Optional<Book> bookOptional = bookRepository.findById(updatedBook.getId());
-        if (bookOptional.isEmpty()) {
-            throw new IllegalArgumentException("Book with ID " + updatedBook.getId() + " not found");
-        }
-
-        Book book = bookOptional.get();
-        PurchaseDetail existingDetail = existingPurchase.getPurchaseDetails().stream()
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Existing purchase details not found"));
-
-        // Revert original quantity
-        Book originalBook = existingDetail.getBook();
-        Optional<Book> originalBookOptional = bookRepository.findById(originalBook.getId());
-        if (originalBookOptional.isPresent()) {
-            Book original = originalBookOptional.get();
-            original.setQuantity(original.getQuantity() + existingDetail.getQuantity());
-            bookRepository.save(original);
-        }
-
-        // Check and update with new quantity
-        if (book.getQuantity() < updatedDetail.getQuantity()) {
+        if (newBook.getQuantity() < newDetail.getQuantity()) {
             throw new IllegalArgumentException("Insufficient book quantity for update");
         }
-        book.setQuantity(book.getQuantity() - updatedDetail.getQuantity());
-        bookRepository.save(book);
 
-        existingDetail.setQuantity(updatedDetail.getQuantity());
-        existingDetail.setPrice(book.getPrice());
-        existingDetail.setBook(book);
+        newBook.setQuantity(newBook.getQuantity() - newDetail.getQuantity());
+        bookRepository.save(newBook);
 
-        return purchaseHistoryRepository.save(existingPurchase);
+        existingDetail.setBook(newBook);
+        existingDetail.setQuantity(newDetail.getQuantity());
+        existingDetail.setPrice(newBook.getPrice());
+
+        return purchaseHistoryRepository.save(existing);
     }
 
     public void deletePurchaseHistory(Long purchaseId) {
-        String authenticatedUser = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = getAuthenticatedUser();
 
-        Optional<PurchaseHistory> purchaseOptional = purchaseHistoryRepository.findById(purchaseId);
-        if (purchaseOptional.isEmpty()) {
-            throw new IllegalArgumentException("Purchase history with ID " + purchaseId + " not found");
+        PurchaseHistory history = purchaseHistoryRepository.findById(purchaseId)
+                .orElseThrow(() -> new IllegalArgumentException("Purchase history not found"));
+
+        if (!history.getCustomer().getUser().getUsername().equals(user.getUsername())) {
+            throw new SecurityException("Unauthorized delete attempt");
         }
 
-        PurchaseHistory purchaseHistory = purchaseOptional.get();
-        if (!purchaseHistory.getCustomer().getUser().equals(authenticatedUser)) {
-            throw new SecurityException("Unauthorized to delete this purchase history");
-        }
+        PurchaseDetail detail = history.getPurchaseDetails().iterator().next();
+        Book book = getBookById(detail.getBook().getId());
 
-        PurchaseDetail purchaseDetail = purchaseHistory.getPurchaseDetails().stream()
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Purchase details not found"));
-
-        Book book = purchaseDetail.getBook();
-        Optional<Book> bookOptional = bookRepository.findById(book.getId());
-        if (bookOptional.isPresent()) {
-            Book existingBook = bookOptional.get();
-            existingBook.setQuantity(existingBook.getQuantity() + purchaseDetail.getQuantity());
-            bookRepository.save(existingBook);
-        }
+        book.setQuantity(book.getQuantity() + detail.getQuantity());
+        bookRepository.save(book);
 
         purchaseHistoryRepository.deleteById(purchaseId);
+    }
+
+    // ---------- Helper Methods ----------
+
+    private User getAuthenticatedUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found"));
+    }
+
+    private Book getBookById(Long id) {
+        return bookRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Book not found with ID: " + id));
     }
 }
