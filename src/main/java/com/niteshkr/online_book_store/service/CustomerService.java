@@ -135,7 +135,7 @@ public class CustomerService {
         User user = getAuthenticatedUser();
 
         PurchaseHistory history = purchaseHistoryRepository.findById(purchaseId)
-                .orElseThrow(() -> new ProductNotFoundException("Purchase history not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Purchase history not found"));
 
         if (!history.getCustomer().getUser().getUsername().equals(user.getUsername())) {
             throw new SecurityException("Unauthorized delete attempt");
