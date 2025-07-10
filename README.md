@@ -1,10 +1,6 @@
+# 📚 Online Book Store (Spring Boot + PostgreSQL)
 
-markdown
-Copy
-Edit
-# 📚 Online Book Store (Spring Boot + MySQL)
-
-This is a full-featured **Online Book Store** backend developed using **Spring Boot**, **Spring Security**, **JWT**, and **MySQL**. It allows users to register, authenticate, browse books, make purchases, and manage their purchase history.
+This is a full-featured **Online Book Store** backend developed using **Spring Boot**, **Spring Security**, **JWT**, and **PostgreSQL**. It allows users to register, authenticate, browse books, make purchases, and manage their purchase history.
 
 ---
 
@@ -26,7 +22,7 @@ This is a full-featured **Online Book Store** backend developed using **Spring B
 |-------------|----------------------------------|
 | Backend     | Java 17, Spring Boot             |
 | Security    | Spring Security, JWT             |
-| Persistence | Spring Data JPA, Hibernate, MySQL |
+| Persistence | Spring Data JPA, Hibernate, PostgreSQL |
 | Build Tool  | Maven                            |
 | Testing     | Postman (for API testing)        |
 
@@ -34,22 +30,8 @@ This is a full-featured **Online Book Store** backend developed using **Spring B
 
 ## 📁 Project Structure
 
-book_store/
-├── src/
-│ ├── main/
-│ │ ├── java/
-│ │ │ └── com.niteshkr.online_book_store/
-│ │ │ ├── controller/
-│ │ │ ├── entity/
-│ │ │ ├── repository/
-│ │ │ ├── service/
-│ │ │ ├── dto/
-│ │ │ ├── security/
-│ │ │ └── exception/
-│ │ └── resources/
-│ │ └── application.properties
-├── pom.xml
-└── README.md
+<img width="341" alt="Screenshot 2025-07-10 at 2 58 04 PM" src="https://github.com/user-attachments/assets/c4719acb-ee5e-4421-8f0f-e7481e29da6f" />
+
 
 yaml
 Copy
@@ -64,28 +46,31 @@ Edit
 ```bash
 git clone https://github.com/Nitesh6206/book_store.git
 cd book_store
-✅ 2. Configure MySQL Database
-Open your MySQL CLI or Workbench and create a database:
+✅ 2. Configure PostgreSQL Database
+Create a database in PostgreSQL:
 
 sql
 Copy
 Edit
 CREATE DATABASE book_store;
 ✅ 3. Update application.properties
-Edit the file:
+Edit this file:
 src/main/resources/application.properties
 
 properties
 Copy
 Edit
-spring.datasource.url=jdbc:mysql://localhost:3306/book_store
-spring.datasource.username=your_mysql_username
-spring.datasource.password=your_mysql_password
+# PostgreSQL Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/book_store
+spring.datasource.username=your_postgres_username
+spring.datasource.password=your_postgres_password
 
+# JPA Configuration
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
-# JWT config
+# JWT Configuration
 jwt.secret=your_jwt_secret
 jwt.expiration=3600000
 ✅ 4. Build the Project
@@ -98,7 +83,7 @@ bash
 Copy
 Edit
 mvn spring-boot:run
-✅ The application will start on:
+📍 The backend will run at:
 http://localhost:8080
 
 🧪 API Endpoints
@@ -106,7 +91,7 @@ Endpoint	Method	Access
 /api/auth/register	POST	Public
 /api/auth/login	POST	Public
 /api/books	GET	Authenticated
-/api/books	POST	Admin Only
+/api/books	POST	SELLER Only
 /api/purchase	POST	Customer
 /api/purchase/history	GET	Customer
 
@@ -118,11 +103,11 @@ Edit
 Authorization: Bearer <your-token>
 🔐 Role Management
 Role	Capabilities
-ROLE_ADMIN	Add, update, delete books
+ROLE_SELLER	Add, update, delete books
 ROLE_CUSTOMER	Purchase and view history
 
 📦 Dependencies
-Some key dependencies in pom.xml:
+Key dependencies in pom.xml:
 
 xml
 Copy
@@ -131,12 +116,12 @@ Edit
 <dependency>spring-boot-starter-data-jpa</dependency>
 <dependency>spring-boot-starter-web</dependency>
 <dependency>io.jsonwebtoken:jjwt</dependency>
-<dependency>mysql:mysql-connector-java</dependency>
+<dependency>org.postgresql:postgresql</dependency>
 🙋‍♂️ Author
 Nitesh Kumar
-📧 Email
-🔗 LinkedIn
-💼 Portfolio
+📧 niteshsingh6206@gmial.com
+🔗 https://www.linkedin.com/in/nitesh-kumar-67970125b/
 
 🤝 Contributing
 Pull requests are welcome! If you’d like to contribute, fork the repo and submit a PR.
+
