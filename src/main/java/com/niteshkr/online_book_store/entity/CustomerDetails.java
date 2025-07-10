@@ -38,8 +38,6 @@ public class CustomerDetails {
             inverseJoinColumns=@JoinColumn(name="book_id"))
     private Set<Book> books;
 
-    @OneToMany(mappedBy = "customer", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval= true)
-    private Set<ShoppingCart> shoppingCart;
 
     @OneToMany(mappedBy = "customer",fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference

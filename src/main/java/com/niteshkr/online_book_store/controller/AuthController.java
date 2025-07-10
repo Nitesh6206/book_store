@@ -34,9 +34,9 @@ public class AuthController {
 
     @Autowired
     private BookRepository bookRepository;
-
-    @Autowired
-    private ShoppingCartRepository shoppingCartRepository;
+//
+//    @Autowired
+//    private ShoppingCartRepository shoppingCartRepository;
 
     @Autowired
     private PurchaseHistoryRepository purchaseHistoryRepository;
@@ -65,7 +65,7 @@ public class AuthController {
         customer.setAddress(userDTO.getAddress());
         customer.setUser(user);
         customer.setBooks(new HashSet<>());
-        customer.setShoppingCart(new HashSet<>());
+//        customer.setShoppingCart(new HashSet<>());
         customer.setPurchaseHistories(new HashSet<>());
 
         user.setCustomer(customer);

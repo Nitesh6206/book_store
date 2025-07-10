@@ -5,6 +5,9 @@ import com.niteshkr.online_book_store.entity.Book;
 
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.context.annotation.Role;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 /**
@@ -29,27 +32,14 @@ public class BookService {
         return bookRepository.findAll();
     }
 
-    /**
-     * Creates a new book in the repository.
-     *
-     * @param book The book to create
-     * @return The created book
-     * @throws IllegalArgumentException if book data is invalid
-     */
     public Book createBook(Book book) {
         validateBook(book);
         return bookRepository.save(book);
     }
 
-    /**
-     * Deletes a book by its ID.
-     *
-     * @param id The ID of the book to delete
-     * @throws IllegalArgumentException if book is not found
-     */
     public void deleteBook(Long id) {
         if (!bookRepository.existsById(id)) {
-            throw new IllegalArgumentException("Book with ID " + id + " not found");
+            throw new RuntimeException("Book with ID " + id + " not found");
         }
         bookRepository.deleteById(id);
     }
@@ -57,7 +47,7 @@ public class BookService {
     public Book updateBook(Long id, Book book) {
         Optional<Book> bookOptional = bookRepository.findById(id);
         if (bookOptional.isEmpty()) {
-            throw new IllegalArgumentException("Book with ID " + id + " not found");
+            throw new RuntimeException("Book with ID " + id + " not found");
         }
         validateBook(book);
         Book existingBook = bookOptional.get();
@@ -67,18 +57,18 @@ public class BookService {
 
     private void validateBook(Book book) {
         if (book == null) {
-            throw new IllegalArgumentException("Book cannot be null");
+            throw new RuntimeException("Book cannot be null");
         }
         if (book.getName() == null || book.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("Book name cannot be empty");
+            throw new RuntimeException("Book name cannot be empty");
         }
         // Check if price is provided and valid
         if (book.getPrice() != null && book.getPrice() < 0) {
-            throw new IllegalArgumentException("Price cannot be negative");
+            throw new RuntimeException("Price cannot be negative");
         }
         // Check if quantity is provided and valid
         if (book.getQuantity() != null && book.getQuantity() < 0) {
-            throw new IllegalArgumentException("Quantity cannot be negative");
+            throw new RuntimeException("Quantity cannot be negative");
         }
     }
 

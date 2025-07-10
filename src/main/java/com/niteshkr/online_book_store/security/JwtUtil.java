@@ -19,7 +19,7 @@ public class JwtUtil {
 
     // Simple string secret key (must be at least 32 bytes for HS256)
     private final String SECRET_KEY = "rdtdybyryttsertytrtr1234567890123456"; // Extended to 36 chars (>32 bytes)
-    private final long EXPIRATION_TIME = 1000 * 60 * 60 * 10; // 10 hours
+    private final long EXPIRATION_TIME = 1000 * 60 * 60; // 10 hours
 
     // Convert string to SecretKey for JJWT
     private SecretKey getSecretKey() {

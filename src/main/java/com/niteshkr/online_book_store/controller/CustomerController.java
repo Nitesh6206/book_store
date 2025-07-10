@@ -1,6 +1,6 @@
 package com.niteshkr.online_book_store.controller;
 
-import com.niteshkr.online_book_store.entity.Book;
+import com.niteshkr.online_book_store.dto.PurchaseDetailDTO;
 import com.niteshkr.online_book_store.entity.PurchaseHistory;
 import com.niteshkr.online_book_store.service.CustomerService;
 import jakarta.validation.Valid;
@@ -21,9 +21,9 @@ public class CustomerController {
     }
 
     @GetMapping("/purchases")
-    public ResponseEntity<List<Book>> getPurchasedBooks() {
-            List<Book> purchasedBooks = customerService.getPurchasedBooks();
-            return new ResponseEntity<>(purchasedBooks, HttpStatus.OK);
+    public ResponseEntity<List<PurchaseDetailDTO>> getPurchasedBooks() {
+             return   customerService.getPurchasedBooks();
+
     }
 
     @PostMapping("/purchases")

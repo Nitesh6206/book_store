@@ -29,6 +29,7 @@ public class SpringConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                                .requestMatchers("api/books").hasRole("SELLER")
                         .requestMatchers("/auth/**").permitAll()
 //                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
